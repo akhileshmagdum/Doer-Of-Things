@@ -18,7 +18,10 @@ public class NotionCheck {
     public static final String NBSP_CHAR = "\\u00A0";
     public static final String BOLD = "**";
     public static final char HEADING = '#';
+    public static final String CODE_BLOCK = "```";
+    public static final String TABLE = "|";
     private int lastHeadingLevel = 0;
+    private transient boolean[] isInCodeBlockOrTableState;  // [inCodeBlock, inTable]
 
     /**
      * Method reads the Notion markdown file and generates the report
@@ -29,8 +32,10 @@ public class NotionCheck {
         List<GrammarReport> reportList = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             while ((currentLine = br.readLine()) != null) {
-                checkExtraSpaces(lineNum, currentLine, reportList);
-                checkNSBPCharacters(lineNum, currentLine, reportList);
+                if (!isInCodeBlockOrTable(currentLine)) {
+                    checkExtraSpaces(lineNum, currentLine, reportList);
+                }
+                checkNBSPCharacter(lineNum, currentLine, reportList);
                 checkInconsistentBoldingOfLines(lineNum, currentLine, reportList);
                 checkHeadingHierarchy(lineNum, currentLine, reportList);
                 lineNum++;
@@ -55,13 +60,13 @@ public class NotionCheck {
         }
     }
 
-    private void checkNSBPCharacters(int lineNum, String line, List<GrammarReport> reportList) {
+    private void checkNBSPCharacter(int lineNum, String line, List<GrammarReport> reportList) {
         if (line.contains(NBSP_CHAR)) {
             reportList.add(GrammarReport.builder()
                     .lineNum(lineNum)
                     .line(formatLineForLogs(line))
                     .issue(GrammarReport.Issue.NBSP_SPACE)
-                    .issueMessage("Character found at position: " + line.indexOf(NBSP_CHAR))
+                    .issueMessage("NBSP character found at position: " + line.indexOf(NBSP_CHAR))
                     .build());
         }
     }
@@ -82,7 +87,7 @@ public class NotionCheck {
                         .lineNum(lineNum)
                         .line(formatLineForLogs(line))
                         .issue(GrammarReport.Issue.WORD_BOLD)
-                        .issueMessage("Space after bold opening")
+                        .issueMessage("Space after bold block opening")
                         .build());
                 break;
             }
@@ -106,7 +111,7 @@ public class NotionCheck {
                         .lineNum(lineNum)
                         .line(formatLineForLogs(line))
                         .issue(GrammarReport.Issue.WORD_BOLD)
-                        .issueMessage("Space before bold closing")
+                        .issueMessage("Space before bold block closing")
                         .build());
                 break;
             }
@@ -179,5 +184,23 @@ public class NotionCheck {
             line = line.substring(0, 30);
         }
         return line;
+    }
+
+    private boolean isInCodeBlockOrTable(String line) {
+        if (isInCodeBlockOrTableState == null) {
+            isInCodeBlockOrTableState = new boolean[]{false, false};
+        }
+        String trimmed = line.trim();
+        // Toggle code block state
+        if (trimmed.startsWith(CODE_BLOCK)) {
+            isInCodeBlockOrTableState[0] = !isInCodeBlockOrTableState[0];
+        }
+        // Table state: if line starts with | and not in code block
+        if (!isInCodeBlockOrTableState[0] && trimmed.startsWith(TABLE)) {
+            isInCodeBlockOrTableState[1] = true;
+        } else if (!trimmed.startsWith(TABLE)) {
+            isInCodeBlockOrTableState[1] = false;
+        }
+        return isInCodeBlockOrTableState[0] || isInCodeBlockOrTableState[1];
     }
 }
