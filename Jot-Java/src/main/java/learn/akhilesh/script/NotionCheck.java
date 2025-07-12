@@ -20,6 +20,7 @@ public class NotionCheck {
     public static final char HEADING = '#';
     public static final String CODE_BLOCK = "```";
     public static final String TABLE = "|";
+    public static final String CODE_MARKER = "`";
     private int lastHeadingLevel = 0;
     private transient boolean[] isInCodeBlockOrTableState;  // [inCodeBlock, inTable]
 
@@ -36,6 +37,7 @@ public class NotionCheck {
                     checkExtraSpaces(lineNum, currentLine, reportList);
                 }
                 checkNBSPCharacter(lineNum, currentLine, reportList);
+                checkInconsistentCodeMarkingOfLines(lineNum, currentLine, reportList);
                 checkInconsistentBoldingOfLines(lineNum, currentLine, reportList);
                 checkHeadingHierarchy(lineNum, currentLine, reportList);
                 lineNum++;
@@ -202,5 +204,47 @@ public class NotionCheck {
             isInCodeBlockOrTableState[1] = false;
         }
         return isInCodeBlockOrTableState[0] || isInCodeBlockOrTableState[1];
+    }
+
+    private void checkInconsistentCodeMarkingOfLines(int lineNum, String line, List<GrammarReport> reportList) {
+        int index = 0;
+        while (index < line.length()) {
+            int open = line.indexOf(CODE_MARKER, index);
+            if (open == -1) {
+                break;
+            }
+            int close = line.indexOf(CODE_MARKER, open + 1);
+            if (close == -1) {
+                reportList.add(GrammarReport.builder()
+                        .lineNum(lineNum)
+                        .line(formatLineForLogs(line))
+                        .issue(GrammarReport.Issue.WORD_CODE)
+                        .issueMessage("Code block not closed")
+                        .build());
+                break;
+            }
+
+            String inside = line.substring(open + 1, close);
+            if (inside.trim().isEmpty()) {
+                reportList.add(GrammarReport.builder()
+                        .lineNum(lineNum)
+                        .line(formatLineForLogs(line))
+                        .issue(GrammarReport.Issue.WORD_CODE)
+                        .issueMessage("No content inside code block")
+                        .build());
+                break;
+            }
+
+            if (inside.startsWith(" ") || inside.endsWith(" ")) {
+                reportList.add(GrammarReport.builder()
+                        .lineNum(lineNum)
+                        .line(formatLineForLogs(line))
+                        .issue(GrammarReport.Issue.WORD_CODE)
+                        .issueMessage("Space inside code block markers")
+                        .build());
+                break;
+            }
+            index = close + 1;
+        }
     }
 }

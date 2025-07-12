@@ -30,6 +30,11 @@ public class AdminProcess {
                     System.out.println("Enter path of your .md converted notion page: ");
                     String filePath = scanner.nextLine();
                     List<GrammarReport> report = notionCheck.generateGrammarReport(filePath);
+                    if (report.isEmpty()) {
+                        System.out.println("No Errors found");
+                    } else {
+                        System.out.println("Total errors found: " + report.size());
+                    }
                     report.forEach(r -> System.out.println(r.toString()));
                 }
                 case "0" -> {

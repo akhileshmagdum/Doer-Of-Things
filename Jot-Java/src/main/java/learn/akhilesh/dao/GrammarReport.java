@@ -23,6 +23,7 @@ public class GrammarReport {
         EXTRA_SPACE,
         NBSP_SPACE,
         WORD_BOLD,
+        WORD_CODE,
         INCONSISTENT_HEADINGS
     }
 }
