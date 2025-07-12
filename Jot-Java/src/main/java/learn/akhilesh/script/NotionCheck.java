@@ -39,12 +39,12 @@ public class NotionCheck {
             while ((currentLine = br.readLine()) != null) {
                 if (!isInCodeBlockOrTable(currentLine)) {
                     checkExtraSpaces(lineNum, currentLine, reportList);
+                    checkHeadingHierarchy(lineNum, currentLine, reportList);
+                    checkInconsistentBoldingOfLines(lineNum, currentLine, reportList);
+                    checkDivAfterHeading(lineNum, currentLine, br, reportList);
                 }
                 checkNBSPCharacter(lineNum, currentLine, reportList);
                 checkInconsistentCodeMarkingOfLines(lineNum, currentLine, reportList);
-                checkInconsistentBoldingOfLines(lineNum, currentLine, reportList);
-                checkHeadingHierarchy(lineNum, currentLine, reportList);
-                checkDivAfterHeading(lineNum, currentLine, br, reportList);
                 lineNum++;
             }
         } catch (FileNotFoundException e) {

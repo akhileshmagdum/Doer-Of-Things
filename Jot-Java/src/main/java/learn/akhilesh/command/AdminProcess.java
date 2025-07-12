@@ -27,18 +27,18 @@ public class AdminProcess {
             switch (command) {
                 case "1" -> {
                     NotionCheck notionCheck = new NotionCheck();
-                    System.out.println("Enter path of your .md converted notion page: ");
+                    System.out.println(createInput("Enter path of your .md converted notion page:"));
                     String filePath = scanner.nextLine();
                     List<GrammarReport> report = notionCheck.generateGrammarReport(filePath);
                     if (report.isEmpty()) {
-                        System.out.println("No Errors found");
+                        System.out.println(createSuccess("No Errors found"));
                     } else {
-                        System.out.println("Total errors found: " + report.size());
+                        System.out.println(createError("Total errors found: " + report.size()));
                     }
                     report.forEach(r -> System.out.println(r.toString()));
                 }
                 case "0" -> {
-                    System.out.println("Exiting the application. Goodbye!");
+                    System.out.println(createMessage("Exiting the application. Goodbye!"));
                     scanner.close();
                     System.exit(0);
                 }
@@ -49,7 +49,7 @@ public class AdminProcess {
                 }
             }
         } catch (Exception e) {
-            System.out.println("An error occurred while processing your request: " + e.getMessage());
+            System.out.println(createError("An error occurred while processing your request: " + e.getMessage()));
             System.out.println(INVALID_OPTION);
             command = appStart();
             processInput(command);
