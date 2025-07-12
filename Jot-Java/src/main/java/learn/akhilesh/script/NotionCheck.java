@@ -207,6 +207,7 @@ public class NotionCheck {
     }
 
     private void checkInconsistentCodeMarkingOfLines(int lineNum, String line, List<GrammarReport> reportList) {
+        if (line.trim().contains(CODE_BLOCK)) return;
         int index = 0;
         while (index < line.length()) {
             int open = line.indexOf(CODE_MARKER, index);
