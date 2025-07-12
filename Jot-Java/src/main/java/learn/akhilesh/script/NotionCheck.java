@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Checks Notion notes for any syntactical errors
@@ -21,6 +22,9 @@ public class NotionCheck {
     public static final String CODE_BLOCK = "```";
     public static final String TABLE = "|";
     public static final String CODE_MARKER = "`";
+    public static final String H1_COUNT = "h1Count";
+    public static final String DIV = "---";
+    private final Map<String, Integer> checkDivAfterHeadingState = new java.util.HashMap<>();
     private int lastHeadingLevel = 0;
     private transient boolean[] isInCodeBlockOrTableState;  // [inCodeBlock, inTable]
 
@@ -40,6 +44,7 @@ public class NotionCheck {
                 checkInconsistentCodeMarkingOfLines(lineNum, currentLine, reportList);
                 checkInconsistentBoldingOfLines(lineNum, currentLine, reportList);
                 checkHeadingHierarchy(lineNum, currentLine, reportList);
+                checkDivAfterHeading(lineNum, currentLine, br, reportList);
                 lineNum++;
             }
         } catch (FileNotFoundException e) {
@@ -247,5 +252,46 @@ public class NotionCheck {
             }
             index = close + 1;
         }
+    }
+
+    private void checkDivAfterHeading(int lineNum, String currentLine, BufferedReader br, List<GrammarReport> reportList) throws IOException {
+        // Static counter for H1s
+        if (!checkDivAfterHeadingState.containsKey(H1_COUNT)) {
+            checkDivAfterHeadingState.put(H1_COUNT, 0);
+        }
+        int h1Count = checkDivAfterHeadingState.get(H1_COUNT);
+
+        int headingLevel = 0;
+        while (headingLevel < currentLine.length() && currentLine.charAt(headingLevel) == HEADING) {
+            headingLevel++;
+        }
+        if (headingLevel == 1) {
+            checkDivAfterHeadingState.put(H1_COUNT, h1Count + 1);
+        }
+
+        br.mark(1000);
+        String nextLine = br.readLine();
+        if (nextLine != null && nextLine.trim().isEmpty()) {
+            String afterEmpty = br.readLine();
+            boolean hasDiv = afterEmpty != null && afterEmpty.trim().equals(DIV);
+            if (headingLevel == 3 && hasDiv) {
+                reportList.add(GrammarReport.builder()
+                        .lineNum(lineNum + 2)
+                        .line(formatLineForLogs(afterEmpty))
+                        .issue(GrammarReport.Issue.INCONSISTENT_HEADINGS)
+                        .issueMessage("H3 cannot have a div (---) after a single empty line")
+                        .build());
+            } else if ((headingLevel == 1 && h1Count > 2) || headingLevel == 2) {
+                if (!hasDiv) {
+                    reportList.add(GrammarReport.builder()
+                            .lineNum(lineNum)
+                            .line(formatLineForLogs(currentLine))
+                            .issue(GrammarReport.Issue.INCONSISTENT_HEADINGS)
+                            .issueMessage((headingLevel == 1 ? "H1" : "H2") + " must have a div (---) after a single empty line")
+                            .build());
+                }
+            }
+        }
+        br.reset();
     }
 }
